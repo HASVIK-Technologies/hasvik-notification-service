@@ -1,0 +1,113 @@
+import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import { AppModule } from '../src/app.module';
+import {
+  SwaggerModule,
+  DocumentBuilder,
+} from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
+import * as bodyParser from 'body-parser';
+import express from 'express';
+
+const server = express();
+
+let initialized = false;
+
+async function bootstrap() {
+  if (initialized) {
+    return;
+  }
+
+  const nestApp = await NestFactory.create(
+    AppModule,
+    new ExpressAdapter(server),
+  );
+
+  // Body parser
+  const bodyLimit = process.env.BODY_LIMIT || '5mb';
+
+  nestApp.use(
+    bodyParser.json({
+      limit: bodyLimit,
+    }),
+  );
+
+  nestApp.use(
+    bodyParser.urlencoded({
+      limit: bodyLimit,
+      extended: true,
+    }),
+  );
+
+  // Validation
+  nestApp.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  );
+
+  // CORS
+  const allowedOrigins = process.env.ALLOW_ORIGIN
+    ? process.env.ALLOW_ORIGIN.split(',')
+    : [];
+
+  if (allowedOrigins.length > 0) {
+    nestApp.enableCors({
+      origin: allowedOrigins,
+      credentials: true,
+    });
+  } else {
+    nestApp.enableCors();
+  }
+
+  // API prefix
+  nestApp.setGlobalPrefix('internal');
+
+  // Swagger configuration
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('HASVIK Notification Service')
+    .setDescription('Internal notification service API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const swaggerDocument = SwaggerModule.createDocument(
+    nestApp,
+    swaggerConfig,
+  );
+
+  // Swagger UI
+  SwaggerModule.setup(
+    'swagger',
+    nestApp,
+    swaggerDocument,
+    {
+      customSiteTitle: 'HASVIK Notification Service',
+
+      // Load Swagger CSS from CDN
+      customCssUrl: [
+        'https://unpkg.com/swagger-ui-dist@5/swagger-ui.css',
+      ],
+
+      // Load Swagger JS from CDN
+      customJs: [
+        'https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js',
+        'https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js',
+      ],
+    },
+  );
+
+  await nestApp.init();
+
+  initialized = true;
+}
+
+export default async function handler(
+  req: any,
+  res: any,
+) {
+  await bootstrap();
+
+  return server(req, res);
+}

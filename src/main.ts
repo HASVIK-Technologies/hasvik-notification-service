@@ -9,6 +9,10 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
+
+  // API prefix
+  app.setGlobalPrefix('internal');
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('HASVIK Notification Service')
     .setDescription('Internal notification service API')
@@ -17,6 +21,6 @@ async function bootstrap() {
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('swagger', app, swaggerDocument);
-  await app.listen(Number(process.env.PORT || 4001));
+  await app.listen(Number(process.env.PORT || 4005));
 }
 void bootstrap();

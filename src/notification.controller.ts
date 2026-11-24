@@ -13,7 +13,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { InternalAuthGuard } from './auth.guard';
 import { NotificationService } from './notification.service';
 import { BulkNotificationsDto, CreateNotificationDto } from './dto/notification.dto';
-@Controller('internal/v1/notifications')
+@Controller('v1/notifications')
 @UseGuards(InternalAuthGuard)
 @ApiTags('Notifications')
 @ApiBearerAuth()
