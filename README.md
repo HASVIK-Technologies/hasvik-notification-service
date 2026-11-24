@@ -1,1 +1,0 @@
-# hasvik-notification-service
