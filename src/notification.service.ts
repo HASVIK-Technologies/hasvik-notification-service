@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { createHash } from 'crypto';
@@ -11,6 +12,8 @@ import { MongoService } from './mongo/mongo.service';
 import { NotificationStatus } from './mongo/enums';
 @Injectable()
 export class NotificationService {
+  private readonly logger = new Logger(NotificationService.name);
+
   constructor(private readonly mongo: MongoService) {}
   private hash(dto: CreateNotificationDto) {
     return createHash('sha256')
@@ -38,6 +41,7 @@ export class NotificationService {
     if (existing) {
       if (existing.payloadHash !== hash)
         throw new ConflictException('Idempotency key reused with different payload');
+      this.logger.log(`Returning existing notification ${existing._id}`);
       return { id: String(existing._id), status: existing.status, duplicate: true };
     }
     try {
@@ -50,11 +54,13 @@ export class NotificationService {
         nextAttemptAt: dto.scheduledAt ? new Date(dto.scheduledAt) : new Date(),
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : new Date(),
       });
+      this.logger.log(`Notification ${record._id} queued`);
       return { id: String(record._id), status: NotificationStatus.QUEUED, duplicate: false };
     } catch (e) {
       if ((e as { code?: number }).code === 11000) {
         const record = await this.mongo.models.notificationLog.findOne(key).lean();
         if (record?.payloadHash !== hash) throw new ConflictException('Idempotency key conflict');
+        this.logger.log(`Returning existing notification ${record?._id}`);
         return { id: String(record?._id), status: record?.status, duplicate: true };
       }
       throw e;
@@ -101,6 +107,7 @@ export class NotificationService {
       { new: true },
     );
     if (!record) throw new NotFoundException('Failed notification not found');
+    this.logger.log(`Notification ${record._id} queued for retry`);
     return { id: String(record._id), status: record.status };
   }
 }

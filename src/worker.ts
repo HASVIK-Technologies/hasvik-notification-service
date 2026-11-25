@@ -38,7 +38,7 @@ export class DeliveryWorker implements OnModuleInit, OnModuleDestroy {
     }
   }
   async tick() {
-    console.log("CRON: Processing notification delivery...");
+    this.logger.log('Processing notification delivery');
     if (this.busy) return;
     if (this.config.get<string>('NOTIFICATION_DELIVERY_ENABLED') !== 'true') {
       this.logger.warn('Notification delivery is disabled; due notifications remain queued');

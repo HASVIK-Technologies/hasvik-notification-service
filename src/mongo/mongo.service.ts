@@ -50,7 +50,7 @@ export class MongoService implements OnModuleInit, OnApplicationShutdown {
       };
 
       await mongoose.connect(uri, options);
-      this.logger.log('MongoDB connected successfully');
+      this.logger.log(`MongoDB connected successfully. url: ${uri}`);
       return mongoose.connection;
     } catch (error) {
       this.logger.error('MongoDB connection failed', error);
